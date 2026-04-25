@@ -8,7 +8,7 @@ router.post('/internal/users', userController.createInternalUser);
 
 // External routes (Protected by API Gateway, x-user-id header is present)
 router.get('/', requireRole(['Admin', 'Trainer']), userController.getAllUsers);
-router.get('/me', userController.getCurrentUser);
+router.get('/me', requireRole(['Admin', 'Trainer', 'Employee']), userController.getCurrentUser);
 router.get('/:id', userController.getUserById);
 router.put('/:id', requireRole(['Admin']), userController.updateUser);
 router.delete('/:id', requireRole(['Admin']), userController.deleteUser);

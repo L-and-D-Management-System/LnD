@@ -4,10 +4,10 @@ const trainingController = require('../controllers/trainingController');
 const requireRole = require('../middleware/requireRole');
 
 // Public (authenticated) routes
-router.get('/', trainingController.getAllTrainings);
+router.get('/', requireRole(['Admin', 'Trainer', 'Employee']), trainingController.getAllTrainings);
 router.get('/stats', requireRole(['Admin']), trainingController.getStats);
-router.get('/trainer/:trainerId', trainingController.getTrainingsByTrainer);
-router.get('/:id', trainingController.getTrainingById);
+router.get('/trainer/:trainerId', requireRole(['Admin', 'Trainer']), trainingController.getTrainingsByTrainer);
+router.get('/:id', requireRole(['Admin', 'Trainer', 'Employee']), trainingController.getTrainingById);
 
 // Admin/Trainer create/update/delete
 router.post('/', requireRole(['Admin', 'Trainer']), trainingController.createTraining);
