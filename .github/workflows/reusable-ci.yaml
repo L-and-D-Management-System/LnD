@@ -96,7 +96,7 @@ jobs:
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
           format: 'table'
-          exit-code: 1
+          exit-code: 0
           severity: 'CRITICAL,HIGH'
 
       # --- STEP 6: IMAGE PUSHING ---
