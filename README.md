@@ -3,7 +3,7 @@
 
 ---
 
-## Architecture Diagram
+## Architecture Diagramm
 
 ```
 ┌─────────────────────────────────────────────────┐
