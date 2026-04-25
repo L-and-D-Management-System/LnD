@@ -2,7 +2,7 @@ global:
   namespace: ld-dev
   domain: dev.13.234.38.101
   mongo:
-    uri: "mongodb://mongodb-svc.ld-dev:27017/training_dev_db"
+    uri: "mongodb://mongodb-svc:27017/training_dev_db"
   jwtSecret: "devsecret"
   imagePullPolicy: Always
 
