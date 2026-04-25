@@ -8,12 +8,9 @@ global:
 
 replicaCount: 1
 
-mongodb:
-  resources:
-    limits:
-      cpu: "100m"
-      memory: "256Mi"
-    requests:
-      cpu: "50m"
-      memory: "128Mi"
-  # Lower replicas for Dev to save resources
+# Remove resource requests so they always fit
+resources: {}
+
+# Use Recreate strategy to free up memory immediately during updates
+strategy:
+  type: Recreate
