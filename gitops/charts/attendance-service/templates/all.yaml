@@ -38,3 +38,20 @@ metadata: {name: attendance-svc-preview}
 spec:
   ports: [{port: 3004, targetPort: 3004}]
   selector: {app: attendance}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: attendance-config
+data:
+  PORT: "3004"
+  NODE_ENV: "production"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: attendance-secret
+type: Opaque
+stringData:
+  MONGO_URI: {{ .Values.global.mongo.uri | quote }}
+  JWT_SECRET: {{ .Values.global.jwtSecret | quote }}

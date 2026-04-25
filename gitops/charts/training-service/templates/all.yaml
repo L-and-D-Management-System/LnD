@@ -38,3 +38,20 @@ metadata: {name: training-svc-preview}
 spec:
   ports: [{port: 3003, targetPort: 3003}]
   selector: {app: training}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-config
+data:
+  PORT: "3003"
+  NODE_ENV: "production"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: training-secret
+type: Opaque
+stringData:
+  MONGO_URI: {{ .Values.global.mongo.uri | quote }}
+  JWT_SECRET: {{ .Values.global.jwtSecret | quote }}
