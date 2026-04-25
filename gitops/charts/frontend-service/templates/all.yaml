@@ -2,45 +2,36 @@
 app: frontend
 {{- end }}
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: frontend-deployment
-  labels:
-    {{- include "frontend-service.labels" . | nindent 4 }}
+  name: frontend-rollout
 spec:
-  {{- if .Values.strategy }}
-  strategy:
-    {{- toYaml .Values.strategy | nindent 4 }}
-  {{- end }}
   replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels:
-      {{- include "frontend-service.labels" . | nindent 6 }}
+    matchLabels: {app: frontend}
   template:
     metadata:
-      labels:
-        {{- include "frontend-service.labels" . | nindent 8 }}
+      labels: {app: frontend}
     spec:
       containers:
         - name: frontend-cont
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - containerPort: {{ .Values.service.port }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+  strategy:
+    blueGreen: 
+      activeService: frontend-svc
+      previewService: frontend-svc-preview
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: frontend-svc
-  labels:
-    {{- include "frontend-service.labels" . | nindent 4 }}
+metadata: {name: frontend-svc}
 spec:
-  type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
-  selector:
-    {{- include "frontend-service.labels" . | nindent 4 }}
+  ports: [{port: 80, targetPort: 80}]
+  selector: {app: frontend}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: frontend-svc-preview}
+spec:
+  ports: [{port: 80, targetPort: 80}]
+  selector: {app: frontend}

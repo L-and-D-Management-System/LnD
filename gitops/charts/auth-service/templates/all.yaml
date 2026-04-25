@@ -1,78 +1,75 @@
-{{- define "user-service.labels" -}}
-app: user
+{{- define "auth-service.labels" -}}
+app: auth
 {{- end }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: user-rollout
+  name: auth-rollout
   labels:
-    {{- include "user-service.labels" . | nindent 4 }}
+    {{- include "auth-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "user-service.labels" . | nindent 6 }}
+      {{- include "auth-service.labels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "user-service.labels" . | nindent 8 }}
+        {{- include "auth-service.labels" . | nindent 8 }}
     spec:
       containers:
-        - name: user-cont
+        - name: auth-cont
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.port }}
           envFrom:
             - configMapRef:
-                name: user-config
+                name: auth-config
             - secretRef:
-                name: user-secret
+                name: auth-secret
   strategy:
     blueGreen: 
-      activeService: user-svc
-      previewService: user-svc-preview
-      autoPromotionEnabled: false # Manual approval for Prod
+      activeService: auth-svc
+      previewService: auth-svc-preview
+      autoPromotionEnabled: true # Auto-promote for Auth
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: user-svc
-  labels:
-    {{- include "user-service.labels" . | nindent 4 }}
+  name: auth-svc
 spec:
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
   selector:
-    {{- include "user-service.labels" . | nindent 4 }}
+    {{- include "auth-service.labels" . | nindent 4 }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: user-svc-preview
-  labels:
-    {{- include "user-service.labels" . | nindent 4 }}
+  name: auth-svc-preview
 spec:
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
   selector:
-    {{- include "user-service.labels" . | nindent 4 }}
+    {{- include "auth-service.labels" . | nindent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: user-config
+  name: auth-config
 data:
   PORT: "{{ .Values.service.port }}"
   NODE_ENV: "production"
+  USER_SERVICE_URL: "http://user-svc:3002"
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: user-secret
+  name: auth-secret
 type: Opaque
 stringData:
   MONGO_URI: {{ .Values.global.mongo.uri | quote }}

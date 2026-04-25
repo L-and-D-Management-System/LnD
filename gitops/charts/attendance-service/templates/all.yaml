@@ -2,67 +2,39 @@
 app: attendance
 {{- end }}
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: attendance-deployment
-  labels:
-    {{- include "attendance-service.labels" . | nindent 4 }}
+  name: attendance-rollout
 spec:
-  {{- if .Values.strategy }}
-  strategy:
-    {{- toYaml .Values.strategy | nindent 4 }}
-  {{- end }}
   replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels:
-      {{- include "attendance-service.labels" . | nindent 6 }}
+    matchLabels: {app: attendance}
   template:
     metadata:
-      labels:
-        {{- include "attendance-service.labels" . | nindent 8 }}
+      labels: {app: attendance}
     spec:
       containers:
         - name: attendance-cont
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - containerPort: {{ .Values.service.port }}
           envFrom:
-            - configMapRef:
-                name: attendance-config
-            - secretRef:
-                name: attendance-secret
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            - configMapRef: {name: attendance-config}
+            - secretRef: {name: attendance-secret}
+  strategy:
+    blueGreen: 
+      activeService: attendance-svc
+      previewService: attendance-svc-preview
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: attendance-svc
-  labels:
-    {{- include "attendance-service.labels" . | nindent 4 }}
+metadata: {name: attendance-svc}
 spec:
-  type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
-  selector:
-    {{- include "attendance-service.labels" . | nindent 4 }}
+  ports: [{port: 3004, targetPort: 3004}]
+  selector: {app: attendance}
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: attendance-config
-data:
-  PORT: "{{ .Values.service.port }}"
-  NODE_ENV: "production"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: attendance-secret
-type: Opaque
-stringData:
-  MONGO_URI: {{ .Values.global.mongo.uri | quote }}
-  JWT_SECRET: {{ .Values.global.jwtSecret | quote }}
+kind: Service
+metadata: {name: attendance-svc-preview}
+spec:
+  ports: [{port: 3004, targetPort: 3004}]
+  selector: {app: attendance}

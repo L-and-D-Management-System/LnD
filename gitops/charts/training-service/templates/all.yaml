@@ -2,67 +2,39 @@
 app: training
 {{- end }}
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  name: training-deployment
-  labels:
-    {{- include "training-service.labels" . | nindent 4 }}
+  name: training-rollout
 spec:
-  {{- if .Values.strategy }}
-  strategy:
-    {{- toYaml .Values.strategy | nindent 4 }}
-  {{- end }}
   replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels:
-      {{- include "training-service.labels" . | nindent 6 }}
+    matchLabels: {app: training}
   template:
     metadata:
-      labels:
-        {{- include "training-service.labels" . | nindent 8 }}
+      labels: {app: training}
     spec:
       containers:
         - name: training-cont
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - containerPort: {{ .Values.service.port }}
           envFrom:
-            - configMapRef:
-                name: training-config
-            - secretRef:
-                name: training-secret
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            - configMapRef: {name: training-config}
+            - secretRef: {name: training-secret}
+  strategy:
+    blueGreen: 
+      activeService: training-svc
+      previewService: training-svc-preview
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: training-svc
-  labels:
-    {{- include "training-service.labels" . | nindent 4 }}
+metadata: {name: training-svc}
 spec:
-  type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.port }}
-  selector:
-    {{- include "training-service.labels" . | nindent 4 }}
+  ports: [{port: 3003, targetPort: 3003}]
+  selector: {app: training}
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: training-config
-data:
-  PORT: "{{ .Values.service.port }}"
-  NODE_ENV: "production"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: training-secret
-type: Opaque
-stringData:
-  MONGO_URI: {{ .Values.global.mongo.uri | quote }}
-  JWT_SECRET: {{ .Values.global.jwtSecret | quote }}
+kind: Service
+metadata: {name: training-svc-preview}
+spec:
+  ports: [{port: 3003, targetPort: 3003}]
+  selector: {app: training}
