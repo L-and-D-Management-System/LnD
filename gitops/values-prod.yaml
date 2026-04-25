@@ -6,4 +6,4 @@ global:
   jwtSecret: "prod-ultra-secure-secret"
   imagePullPolicy: IfNotPresent
 
-replicaCount: 3  # High availability for Production
+replicaCount: 1  # Scaling down to 1 to fit on the single-node cluster
