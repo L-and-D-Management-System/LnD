@@ -17,7 +17,7 @@ on:
       SONAR_TOKEN:
         required: true
       SONAR_HOST_URL:
-        required: false
+        required: true
       SNYK_TOKEN:
         required: true
       GHCR_PAT:
@@ -35,24 +35,29 @@ jobs:
   ci-pipeline:
     name: CI Pipeline for ${{ inputs.service_name }}
     runs-on: ubuntu-latest
-    environment: 
-      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
-    
+
     steps:
+      # -------------------------------
+      # Checkout
+      # -------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set Tag Variables
+      # -------------------------------
+      # Variables
+      # -------------------------------
+      - name: Set Variables
         id: vars
         run: |
           echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "REPO_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
 
-      # --- STEP 1: SAST SCAN (Sonar) ---
+      # -------------------------------
+      # SonarQube Scan
+      # -------------------------------
       - name: Generate Sonar Config
         run: |
-          echo "sonar.projectKey=L-and-D-Management-System_auth-service_0f22a64f-770d-47af-ba80-436796307ac6" > sonar-project.properties
+          echo "sonar.projectKey=${{ inputs.service_name }}" > sonar-project.properties
           echo "sonar.sources=." >> sonar-project.properties
 
       - name: SonarQube Scan
@@ -61,53 +66,73 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      # --- STEP 2: QUALITY GATE ---
       - name: Sonar Quality Gate Check
         uses: sonarsource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      # --- STEP 3: SNYK SCAN ---
+      # -------------------------------
+      # Snyk Scan
+      # -------------------------------
       - name: Snyk Security Scan
         uses: snyk/actions/node@master
-        continue-on-error: true # Allow build to continue but log vulnerabilities
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # --- STEP 4: IMAGE BUILDING ---
+      # -------------------------------
+      # Docker Setup
+      # -------------------------------
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Registries
+      # -------------------------------
+      # Login (GHCR + DockerHub)
+      # -------------------------------
+      - name: Login to GHCR
         run: |
-          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+      - name: Login to DockerHub
+        run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
+      # -------------------------------
+      # Build Image
+      # -------------------------------
       - name: Build Docker Image
         run: |
-          docker build -t ghcr.io/l-and-d-management-system/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }} \
+          docker build \
+          -t ghcr.io/${{ steps.vars.outputs.REPO_LC }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }} \
+          -t ghcr.io/${{ steps.vars.outputs.REPO_LC }}/${{ inputs.image_name }}:latest \
           -t ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }} \
           -t ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest .
 
-      # --- STEP 5: TRIVY SCAN ---
-      - name: Trivy Vulnerability Scan
+      # -------------------------------
+      # Trivy Scan
+      # -------------------------------
+      - name: Trivy Scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
-          format: 'table'
+          image-ref: ghcr.io/${{ steps.vars.outputs.REPO_LC }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          format: table
           exit-code: 0
-          severity: 'CRITICAL,HIGH'
+          severity: CRITICAL,HIGH
 
-      # --- STEP 6: IMAGE PUSHING ---
-      - name: Push to Registries
-        if: success()
+      # -------------------------------
+      # Push Images
+      # -------------------------------
+      - name: Push Images
         run: |
-          docker push ghcr.io/l-and-d-management-system/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          docker push ghcr.io/${{ steps.vars.outputs.REPO_LC }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          docker push ghcr.io/${{ steps.vars.outputs.REPO_LC }}/${{ inputs.image_name }}:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest
 
-      # --- STEP 7: SMTP NOTIFICATION ---
+      # -------------------------------
+      # Email Notification
+      # -------------------------------
       - name: Notification Email
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -121,7 +146,6 @@ jobs:
           from: "L&D DevOps Pipeline"
           body: |
             CI Pipeline for ${{ inputs.service_name }} has ${{ job.status }}.
-            Environment: ${{ github.ref_name }}
             Image Tag: ${{ steps.vars.outputs.IMAGE_TAG }}
             Commit: ${{ github.sha }}
-            View Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
