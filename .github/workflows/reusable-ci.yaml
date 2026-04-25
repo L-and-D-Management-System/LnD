@@ -52,7 +52,7 @@ jobs:
       # --- STEP 1: SAST SCAN (Sonar) ---
       - name: Generate Sonar Config
         run: |
-          echo "sonar.projectKey=L-and-D-Management-System_${{ inputs.service_name }}" > sonar-project.properties
+          echo "sonar.projectKey=l-and-d-management-system_${{ inputs.service_name }}" > sonar-project.properties
           echo "sonar.organization=l-and-d-management-system" >> sonar-project.properties
           echo "sonar.sources=." >> sonar-project.properties
 
