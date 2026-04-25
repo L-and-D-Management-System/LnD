@@ -1,0 +1,9 @@
+global:
+  namespace: ld-prod
+  domain: 13.234.38.101
+  mongo:
+    uri: "mongodb://mongodb-svc.ld-prod:27017/training_prod_db"
+  jwtSecret: "prod-ultra-secure-secret"
+  imagePullPolicy: IfNotPresent
+
+replicaCount: 3  # High availability for Production

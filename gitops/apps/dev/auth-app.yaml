@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-auth-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/auth-service
+    helm:
+      valueFiles:
+        - ../../values-dev.yaml
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ld-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

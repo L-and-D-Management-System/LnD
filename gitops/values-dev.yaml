@@ -1,0 +1,9 @@
+global:
+  namespace: ld-dev
+  domain: dev.13.234.38.101
+  mongo:
+    uri: "mongodb://mongodb-svc.ld-dev:27017/training_dev_db"
+  jwtSecret: "devsecret"
+  imagePullPolicy: Always
+
+replicaCount: 1  # Lower replicas for Dev to save resources

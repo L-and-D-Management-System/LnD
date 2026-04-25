@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/gateway
+    helm:
+      valueFiles:
+        - ../../values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ld
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

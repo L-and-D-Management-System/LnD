@@ -1,0 +1,79 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-training-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/training-service
+    helm:
+      valueFiles: ["../../values-dev.yaml", "values.yaml"]
+  destination: {server: "https://kubernetes.default.svc", namespace: "ld-dev"}
+  syncPolicy: {automated: {prune: true, selfHeal: true}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-attendance-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/attendance-service
+    helm:
+      valueFiles: ["../../values-dev.yaml", "values.yaml"]
+  destination: {server: "https://kubernetes.default.svc", namespace: "ld-dev"}
+  syncPolicy: {automated: {prune: true, selfHeal: true}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-frontend-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/frontend-service
+    helm:
+      valueFiles: ["../../values-dev.yaml", "values.yaml"]
+  destination: {server: "https://kubernetes.default.svc", namespace: "ld-dev"}
+  syncPolicy: {automated: {prune: true, selfHeal: true}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-mongodb
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/mongodb
+    helm:
+      valueFiles: ["../../values-dev.yaml", "values.yaml"]
+  destination: {server: "https://kubernetes.default.svc", namespace: "ld-dev"}
+  syncPolicy: {automated: {prune: true, selfHeal: true}}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-gateway
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    targetRevision: HEAD
+    path: gitops/charts/gateway
+    helm:
+      valueFiles: ["../../values-dev.yaml"]
+  destination: {server: "https://kubernetes.default.svc", namespace: "ld-dev"}
+  syncPolicy: {automated: {prune: true, selfHeal: true}}
