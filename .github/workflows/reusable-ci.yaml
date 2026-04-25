@@ -16,6 +16,10 @@ on:
         required: true
       GHCR_PAT:
         required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
       SMTP_PASSWORD:
         required: true
       SMTP_USERNAME:
@@ -66,33 +70,38 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_PAT }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Prepare Tags
         id: prep
         run: |
           TAG=$(echo ${GITHUB_SHA} | cut -c1-7)
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Build Image
+      - name: Build and Push (Multi-Registry)
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
-          tags: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
-          load: true
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:latest
+          load: false
 
       - name: Trivy Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
-
-      - name: Push Image to GHCR
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.prep.outputs.tag }}
 
   deploy:
     name: Deploy Notification
@@ -109,6 +118,6 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "Deployment to ${{ github.ref_name }} Successful"
-          body: "${{ inputs.service_name }} version ${{ needs.build-and-scan.outputs.image_tag }} has been deployed to ${{ github.ref_name }} environment."
+          body: "${{ inputs.service_name }} version ${{ needs.build-and-scan.outputs.image_tag }} has been pushed to Docker Hub and GHCR."
           to: ${{ secrets.SMTP_USERNAME }}
           from: GitHub Actions CI
