@@ -103,7 +103,7 @@ jobs:
       - name: Push to Registries
         if: success()
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          docker push ghcr.io/l-and-d-management-system/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
           docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest
 
