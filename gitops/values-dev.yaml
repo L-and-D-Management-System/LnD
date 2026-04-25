@@ -6,6 +6,8 @@ global:
   jwtSecret: "devsecret"
   imagePullPolicy: Always
 
+nodePort: 30081
+
 replicaCount: 1
 
 # Remove resource requests so they always fit
