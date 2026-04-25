@@ -6,4 +6,14 @@ global:
   jwtSecret: "devsecret"
   imagePullPolicy: Always
 
-replicaCount: 1  # Lower replicas for Dev to save resources
+replicaCount: 1
+
+mongodb:
+  resources:
+    limits:
+      cpu: "100m"
+      memory: "256Mi"
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+  # Lower replicas for Dev to save resources
