@@ -46,8 +46,6 @@ jobs:
           args: >
             -Dsonar.projectKey=L-and-D-Management-System_${{ inputs.service_name }}
             -Dsonar.organization=l-and-d-management-system
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
 
       - name: Snyk Open Source Scan
         uses: snyk/actions/node@master
