@@ -1,0 +1,95 @@
+global:
+  jwtSecret: "secret"
+  mongo:
+    uri: "mongodb://mongo-svc:27017/lnd"
+authService:
+  enabled: false
+  replicaCount: 2
+  
+  image:
+    repository: chandu554/auth-service-image
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 3001
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+userService:
+  enabled: false
+  replicaCount: 2
+  
+  image:
+    repository: chandu554/user_lb_image
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 3002
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+trainingService:
+  enabled: false
+  replicaCount: 2
+  
+  image:
+    repository: chandu554/training-ld-service
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 3003
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+attendanceService:
+  enabled: false
+  replicaCount: 2
+  
+  image:
+    repository: chandu554/attendance-service-lb
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 3004
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+frontendService:
+  enabled: false
+apiGateway:
+  enabled: false
+mongo:
+  enabled: false
+
