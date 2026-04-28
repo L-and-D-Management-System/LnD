@@ -1,0 +1,13 @@
+{{- if .Values.trainingService.enabled }}
+{{- $local := .Values.trainingService }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-config
+data:
+  PORT: "3003"
+  NODE_ENV: "production"
+
+{{- end }}
+
