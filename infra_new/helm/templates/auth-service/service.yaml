@@ -1,0 +1,27 @@
+{{- if .Values.authService.enabled }}
+{{- $local := .Values.authService }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-svc
+spec:
+  ports:
+    - port: {{ $local.service.port }}
+      targetPort: {{ $local.service.port }}
+  selector:
+    {{- include "auth-service.labels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-svc-preview
+spec:
+  ports:
+    - port: {{ $local.service.port }}
+      targetPort: {{ $local.service.port }}
+  selector:
+    {{- include "auth-service.labels" . | nindent 4 }}
+
+{{- end }}
+
