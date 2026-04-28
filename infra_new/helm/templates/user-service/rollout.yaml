@@ -1,0 +1,38 @@
+{{- if .Values.userService.enabled }}
+{{- $local := .Values.userService }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: user-rollout
+  labels:
+    {{- include "user-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $local.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "user-service.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "user-service.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: user-cont
+          image: "{{ $local.image.repository }}:{{ $local.image.tag }}"
+          imagePullPolicy: {{ $local.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $local.service.port }}
+          envFrom:
+            - configMapRef:
+                name: user-config
+            - secretRef:
+                name: user-secret
+  strategy:
+    blueGreen: 
+      activeService: user-svc
+      previewService: user-svc-preview
+      autoPromotionEnabled: false # Manual approval for Prod
+
+{{- end }}
+
