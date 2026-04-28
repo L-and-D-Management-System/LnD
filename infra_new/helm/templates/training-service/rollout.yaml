@@ -1,0 +1,28 @@
+{{- if .Values.trainingService.enabled }}
+{{- $local := .Values.trainingService }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: training-rollout
+spec:
+  replicas: {{ $local.replicaCount }}
+  selector:
+    matchLabels: {app: training}
+  template:
+    metadata:
+      labels: {app: training}
+    spec:
+      containers:
+        - name: training-cont
+          image: "{{ $local.image.repository }}:{{ $local.image.tag }}"
+          envFrom:
+            - configMapRef: {name: training-config}
+            - secretRef: {name: training-secret}
+  strategy:
+    blueGreen: 
+      activeService: training-svc
+      previewService: training-svc-preview
+
+{{- end }}
+
