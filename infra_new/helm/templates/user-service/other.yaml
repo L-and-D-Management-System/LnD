@@ -1,0 +1,9 @@
+{{- if .Values.userService.enabled }}
+{{- $local := .Values.userService }}
+---
+{{- define "user-service.labels" -}}
+app: user
+{{- end }}
+
+{{- end }}
+
