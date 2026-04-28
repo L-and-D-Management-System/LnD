@@ -1,0 +1,9 @@
+{{- if .Values.trainingService.enabled }}
+{{- $local := .Values.trainingService }}
+---
+{{- define "training-service.labels" -}}
+app: training
+{{- end }}
+
+{{- end }}
+
