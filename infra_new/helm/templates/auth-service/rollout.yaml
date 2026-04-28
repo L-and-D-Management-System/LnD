@@ -1,0 +1,38 @@
+{{- if .Values.authService.enabled }}
+{{- $local := .Values.authService }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: auth-rollout
+  labels:
+    {{- include "auth-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $local.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "auth-service.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "auth-service.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: auth-cont
+          image: "{{ $local.image.repository }}:{{ $local.image.tag }}"
+          imagePullPolicy: {{ $local.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $local.service.port }}
+          envFrom:
+            - configMapRef:
+                name: auth-config
+            - secretRef:
+                name: auth-secret
+  strategy:
+    blueGreen: 
+      activeService: auth-svc
+      previewService: auth-svc-preview
+      autoPromotionEnabled: true # Auto-promote for Auth
+
+{{- end }}
+
