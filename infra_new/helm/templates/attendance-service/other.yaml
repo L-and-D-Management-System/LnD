@@ -1,0 +1,9 @@
+{{- if .Values.attendanceService.enabled }}
+{{- $local := .Values.attendanceService }}
+---
+{{- define "attendance-service.labels" -}}
+app: attendance
+{{- end }}
+
+{{- end }}
+
