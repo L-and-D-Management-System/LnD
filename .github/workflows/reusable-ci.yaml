@@ -3,84 +3,31 @@ name: Reusable Microservice CI
 on:
   workflow_call:
     inputs:
-      trigger_event:
-        required: false
-        type: string
-      source_sha:
-        required: false
-        type: string
       service_name:
         required: true
         type: string
       image_name:
         required: true
         type: string
-      helm_values_key:
-        required: false
-        type: string
       dev_manifest_path:
         required: true
-        type: string
-      sonar_key:
-        required: false
-        type: string
-      docker_context:
-        required: false
-        default: "."
-        type: string
-      dockerfile_path:
-        required: false
-        default: "./Dockerfile"
-        type: string
-      working_directory:
-        required: false
-        default: "."
-        type: string
-      infra_repository:
-        required: false
-        default: "L-and-D-Management-System/LnD"
-        type: string
-      infra_ref:
-        required: false
-        default: "main"
         type: string
     secrets:
       SONAR_TOKEN:
         required: true
-      SONAR_URL:
-        required: false
       SNYK_TOKEN:
         required: true
       TOKEN:
         required: true
-      EMAIL_USERNAME:
-        required: false
-      EMAIL_PASSWORD:
-        required: false
-      DOCKER_USERNAME:
-        required: false
-      DOCKER_PASSWORD:
-        required: false
 
 jobs:
-  ci:
-    name: CI Pipeline
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set Tag Variables
-        id: vars
-        run: |
-          SHA=${{ inputs.source_sha }}
-          if [ -z "$SHA" ]; then
-            SHA=${GITHUB_SHA}
-          fi
-          echo "IMAGE_TAG=sha-${SHA::7}" >> $GITHUB_OUTPUT
-          echo "FULL_SHA=$SHA" >> $GITHUB_OUTPUT
 
       - name: SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@master
@@ -89,7 +36,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=${{ inputs.sonar_key || format('L-and-D-Management-System_{0}', inputs.service_name) }}
+            -Dsonar.projectKey=L-and-D-Management-System_${{ inputs.service_name }}
             -Dsonar.organization=l-and-d-management-system
 
       - name: Snyk Security Scan
@@ -108,104 +55,39 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.TOKEN }}
 
-      - name: Login to Docker Hub
-        if: env.DOCKER_USER != ''
-        uses: docker/login-action@v3
-        env:
-          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Build and Push to GHCR
         uses: docker/build-push-action@v5
         with:
-          context: ${{ inputs.docker_context }}
-          file: ${{ inputs.dockerfile_path }}
+          context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          tags: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:sha-${{ github.sha }}
 
-      - name: Push to Docker Hub
-        if: env.DOCKER_USER != ''
-        env:
-          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
-        run: |
-          docker tag ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
-          docker tag ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:${{ steps.vars.outputs.IMAGE_TAG }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/${{ inputs.image_name }}:latest
-
-      - name: Checkout Infra Repository
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
-        uses: actions/checkout@v4
+      - name: Trivy Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
         with:
-          repository: ${{ inputs.infra_repository }}
-          ref: ${{ inputs.infra_ref }}
-          token: ${{ secrets.TOKEN }}
-          path: infra-repo
-
-      - name: Install yq
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
-        shell: bash
-        run: |
-          sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}:sha-${{ github.sha }}
+          format: 'table'
+          exit-code: 1
+          severity: 'CRITICAL,HIGH'
 
       - name: Update Dev Manifest
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
         shell: bash
         env:
-          DEV_MANIFEST: infra-repo/${{ inputs.dev_manifest_path }}
-          IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/${{ inputs.image_name }}
-          IMAGE_TAG: ${{ steps.vars.outputs.IMAGE_TAG }}
-          SOURCE_SHA: ${{ steps.vars.outputs.FULL_SHA }}
+          DEV_MANIFEST: ${{ inputs.dev_manifest_path }}
+          IMAGE_TAG: sha-${{ github.sha }}
         run: |
-          # Lowercase the repository owner
-          IMAGE_REPOSITORY=$(echo "$IMAGE_REPOSITORY" | tr '[:upper:]' '[:lower:]')
-
-          yq -i '
-            .metadata.annotations."ci.smartparking.io/last-built-sha" = strenv(SOURCE_SHA) |
-            .metadata.annotations."ci.smartparking.io/last-built-tag" = strenv(IMAGE_TAG) |
-            .spec.source.helm.parameters = (
-              (.spec.source.helm.parameters // []) | 
-              map(select(.name != "image.repository" and .name != "image.tag")) + 
-              [
-                {"name": "image.repository", "value": strenv(IMAGE_REPOSITORY)},
-                {"name": "image.tag", "value": strenv(IMAGE_TAG)}
-              ]
-            )
-          ' "${DEV_MANIFEST}"
-
-      - name: Commit Dev Manifest Changes
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
-        shell: bash
-        working-directory: infra-repo
-        env:
-          SERVICE_NAME: ${{ inputs.service_name }}
-          IMAGE_TAG: ${{ steps.vars.outputs.IMAGE_TAG }}
-        run: |
-          if git diff --quiet; then
-            echo "No manifest changes detected."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${{ inputs.dev_manifest_path }}"
-          git commit -m "ci: update ${SERVICE_NAME} dev image to ${IMAGE_TAG}"
-          git push origin "HEAD:${{ inputs.infra_ref }}"
-
-      - name: Send SMTP Notification
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "CI Result: ${{ inputs.service_name }} - ${{ job.status }}"
-          to: ${{ secrets.EMAIL_USERNAME }}
-          from: "L&D DevOps Pipeline"
-          body: |
-            CI Pipeline for ${{ inputs.service_name }} has ${{ job.status }}.
-            Image Tag: ${{ steps.vars.outputs.IMAGE_TAG }}
-            View Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Checkout Infra Repo
+          git clone https://${{ secrets.TOKEN }}@github.com/L-and-D-Management-System/LnD.git infra
+          cd infra
+          # Install yq
+          sudo wget -q https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+          # Update Image Tag
+          /usr/local/bin/yq -i ".spec.source.helm.parameters |= map(if .name == \"image.tag\" then .value = \"$IMAGE_TAG\" else . end)" "$DEV_MANIFEST"
+          # Update Built Annotation
+          /usr/local/bin/yq -i ".metadata.annotations.\"ci.smartparking.io/last-built-sha\" = \"$IMAGE_TAG\"" "$DEV_MANIFEST"
+          # Push
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "deploy: update ${{ inputs.service_name }} dev image to $IMAGE_TAG"
+          git push
