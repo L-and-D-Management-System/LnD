@@ -1,0 +1,19 @@
+{{- if .Values.trainingService.enabled }}
+{{- $local := .Values.trainingService }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: training-svc}
+spec:
+  ports: [{port: 3003, targetPort: 3003}]
+  selector: {app: training}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: training-svc-preview}
+spec:
+  ports: [{port: 3003, targetPort: 3003}]
+  selector: {app: training}
+
+{{- end }}
+
