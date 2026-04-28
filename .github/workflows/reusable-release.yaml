@@ -121,7 +121,12 @@ jobs:
 
       - name: Pull SHA Image
         shell: bash
-        run: docker pull "${{ steps.meta.outputs.image_repository }}:${{ steps.meta.outputs.source_sha }}" || docker pull "${{ steps.meta.outputs.image_repository }}:sha-${{ steps.meta.outputs.source_sha }}" || docker pull "${{ steps.meta.outputs.image_repository }}:sha-${{ steps.meta.outputs.source_sha:0:7 }}"
+        run: |
+          FULL_SHA="${{ steps.meta.outputs.source_sha }}"
+          SHORT_SHA="${FULL_SHA:0:7}"
+          docker pull "${{ steps.meta.outputs.image_repository }}:${FULL_SHA}" || \
+          docker pull "${{ steps.meta.outputs.image_repository }}:sha-${FULL_SHA}" || \
+          docker pull "${{ steps.meta.outputs.image_repository }}:sha-${SHORT_SHA}"
 
       - name: Retag Release Image
         shell: bash
