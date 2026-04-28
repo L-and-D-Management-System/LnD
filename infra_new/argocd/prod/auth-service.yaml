@@ -10,6 +10,8 @@ spec:
     path: infra_new/helm
     targetRevision: HEAD
     helm:
+      valueFiles:
+        - values-prod.yaml
       parameters:
         - name: authService.enabled
           value: "true"
