@@ -10,6 +10,8 @@ spec:
     path: infra_new/helm
     targetRevision: HEAD
     helm:
+      valueFiles:
+        - values-dev.yaml
       parameters:
         - name: attendanceService.enabled
           value: "true"
