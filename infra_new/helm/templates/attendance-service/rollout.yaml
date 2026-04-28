@@ -1,0 +1,28 @@
+{{- if .Values.attendanceService.enabled }}
+{{- $local := .Values.attendanceService }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: attendance-rollout
+spec:
+  replicas: {{ $local.replicaCount }}
+  selector:
+    matchLabels: {app: attendance}
+  template:
+    metadata:
+      labels: {app: attendance}
+    spec:
+      containers:
+        - name: attendance-cont
+          image: "{{ $local.image.repository }}:{{ $local.image.tag }}"
+          envFrom:
+            - configMapRef: {name: attendance-config}
+            - secretRef: {name: attendance-secret}
+  strategy:
+    blueGreen: 
+      activeService: attendance-svc
+      previewService: attendance-svc-preview
+
+{{- end }}
+
