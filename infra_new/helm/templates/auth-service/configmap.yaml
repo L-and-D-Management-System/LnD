@@ -1,0 +1,14 @@
+{{- if .Values.authService.enabled }}
+{{- $local := .Values.authService }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-config
+data:
+  PORT: "{{ $local.service.port }}"
+  NODE_ENV: "production"
+  USER_SERVICE_URL: "http://user-svc:3002"
+
+{{- end }}
+
