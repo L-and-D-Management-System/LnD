@@ -1,0 +1,9 @@
+{{- if .Values.authService.enabled }}
+{{- $local := .Values.authService }}
+---
+{{- define "auth-service.labels" -}}
+app: auth
+{{- end }}
+
+{{- end }}
+
