@@ -1,0 +1,13 @@
+{{- if .Values.userService.enabled }}
+{{- $local := .Values.userService }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-config
+data:
+  PORT: "{{ $local.service.port }}"
+  NODE_ENV: "production"
+
+{{- end }}
+
