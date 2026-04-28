@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-api-gateway
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/L-and-D-Management-System/LnD.git
+    path: infra_new/helm
+    targetRevision: HEAD
+    helm:
+      parameters:
+        - name: apiGateway.enabled
+          value: "true"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ld-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
