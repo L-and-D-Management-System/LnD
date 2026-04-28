@@ -1,0 +1,19 @@
+{{- if .Values.attendanceService.enabled }}
+{{- $local := .Values.attendanceService }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: attendance-svc}
+spec:
+  ports: [{port: 3004, targetPort: 3004}]
+  selector: {app: attendance}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: attendance-svc-preview}
+spec:
+  ports: [{port: 3004, targetPort: 3004}]
+  selector: {app: attendance}
+
+{{- end }}
+
